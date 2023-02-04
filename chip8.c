@@ -430,7 +430,7 @@ void chip8_loop(){
 					}
 			}
 		}
-		gui_draw_example();
+		//gui_draw_example();
 
 		//TIMER SHENANIGANS
 		if (SDL_TICKS_PASSED(SDL_GetTicks(),start_ticks + 17)){
