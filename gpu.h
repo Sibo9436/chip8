@@ -24,7 +24,7 @@ typedef struct gpu{
 	SDL_Window* window;
 	SDL_Surface* screen_surface;
 	SDL_Renderer* renderer;
-	char  mem[GPU_SIZE];
+	uint8_t  mem[GPU_SIZE];
 }GPU;
 
 typedef struct sprite{
@@ -32,7 +32,7 @@ typedef struct sprite{
 	unsigned int y;
 	unsigned int height;
 	//Living dangerously, this has to be a pointer to the cpu memory
-	char* ptr;
+	uint8_t* ptr;
 }GPU_sprite;
 
 GPU* gpu_init();

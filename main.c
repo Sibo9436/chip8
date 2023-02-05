@@ -13,7 +13,7 @@ int main(){
 	
 	//tutto sto meraviglioso truschino verrà poi estratto no worries
 	FILE*  fileptr;
-	char *buffer;
+	uint8_t *buffer;
 	long filelen;
 	//fileptr = fopen("ibm_logo.ch8","rb");
 	//fileptr = fopen("test_opcode.ch8","rb");
@@ -23,7 +23,7 @@ int main(){
 	rewind(fileptr);
 	printf("filesize is: %ld\n", filelen);
 
-	buffer = (char*)malloc(filelen*sizeof(char));
+	buffer = (uint8_t*)malloc(filelen*sizeof(uint8_t));
 	fread(buffer,filelen,1,fileptr);
 	fclose(fileptr);
 	//printf("FILE\n");

@@ -21,7 +21,7 @@
 	do { if (CHIP8_DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
 CHIP8 chip;
-char font_array[]  = {
+uint8_t font_array[]  = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
 	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -95,18 +95,18 @@ size_t chip8_get_key_index(SDL_Scancode code){
 }
 int chip8_init(){
 	srand(time(NULL));
-	memset(chip.mem,0,sizeof(char)*CHIP_MEM_SIZE);
-	memset(chip.stack,0,sizeof(char)*6);
+	memset(chip.mem,0,sizeof(uint8_t)*CHIP_MEM_SIZE);
+	memset(chip.stack,0,sizeof(uint8_t)*6);
 	chip.stackptr = 0;
-	memset(chip.v,0,sizeof(char)*16);
+	memset(chip.v,0,sizeof(uint8_t)*16);
 	chip.pc = 0x200;
 
 	printf("copying font memory\n");
-	memcpy(&(chip.mem[0x050]), font_array, sizeof(char)*80);
+	memcpy(&(chip.mem[0x050]), font_array, sizeof(uint8_t)*80);
 
 
 	printf("clearing gpu memory\n");
-	memset(chip.gpu.mem, 0,sizeof(char)* GPU_SIZE);
+	memset(chip.gpu.mem, 0,sizeof(uint8_t)* GPU_SIZE);
 	//	for (unsigned int i = 0; i<160; i++){
 	//		printf("mem[%d] -> %u\n", i, chip.mem[i]);
 	//	}
@@ -126,8 +126,8 @@ int chip8_init(){
 //There's other ways I guess
 //who cares
 uint16_t chip8_fetch(){
-	char first_byte = chip.mem[chip.pc++];
-	char second_byte = chip.mem[chip.pc++];
+	uint8_t first_byte = chip.mem[chip.pc++];
+	uint8_t second_byte = chip.mem[chip.pc++];
 	//numbers are stored big endiannly (lol)
 	return ((uint16_t)first_byte << 8) + (uint16_t)second_byte;
 }
@@ -353,7 +353,7 @@ void chip8_decode(uint16_t op){
 							chip.pc-=2;
 						}
 						break;
-					case 0x29: //Font character
+					case 0x29: //Font uint8_tacter
 						chip.i = (5*(uint16_t)chip.v[MASK_X(op)])+0x0050;
 						break;
 					case 0x33:
@@ -401,7 +401,7 @@ void chip8_loop(){
 	bool quit = false;
 	uint32_t start_ticks = SDL_GetTicks();
 	while( quit == false ){ 
-		bool stepped = false;
+		bool stepped = true;
 		//Non so quanto possa convenirmi fare una roba del genere
 		if (CHIP8_key_state == CHIP_KEY_RELEASED) CHIP8_key_state = CHIP_KEY_UP;
 		for (size_t i = 0; i < 16; i++){
@@ -470,12 +470,12 @@ void chip8_close(){
 	gui_close();
 }
 
-int chip8_load(char* buffer, long filelen){
+int chip8_load(uint8_t* buffer, long filelen){
 	if (filelen > CHIP_MEM_SIZE-0x200){
 		fprintf(stderr,"FILE TOO BIG!");
 		return 0;
 	}
-	memcpy(&chip.mem[0x0200],buffer,sizeof(char)*filelen);
+	memcpy(&chip.mem[0x0200],buffer,sizeof(uint8_t)*filelen);
 	return 1;
 }
 

@@ -49,7 +49,7 @@ int gpu_close(GPU* gpu){
 }
 
 void gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite) {
-	char* ptr = sprite->ptr;
+	uint8_t* ptr = sprite->ptr;
 	//Weird but ok
 	unsigned int startx = sprite->x % GPU_WIDTH;
 	unsigned int starty = sprite->y %GPU_HEIGHT;
@@ -88,7 +88,7 @@ void gpu_draw(GPU* gpu){
 
 void gpu_clear(GPU* gpu){
 	//should I do this the hacky, efficient way or the fancy, less efficient one?
-	memset(gpu->mem,0,sizeof(char)*GPU_SIZE); 
+	memset(gpu->mem,0,sizeof(uint8_t)*GPU_SIZE); 
 	SDL_SetRenderDrawColor(gpu->renderer, 0x00,0x00,0x00,0xFF);
 	SDL_RenderClear(gpu->renderer);
 	SDL_RenderPresent(gpu->renderer);

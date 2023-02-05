@@ -40,7 +40,7 @@ extern CHIP8 chip;
 
 
 int chip8_init();
-int chip8_load(char*, long);
+int chip8_load(uint8_t*, long);
 void chip8_loop();
 void chip8_close();
 
