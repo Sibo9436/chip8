@@ -1,6 +1,7 @@
 CC = gcc 
-CC_FLAGS = -Wall -std="c11"
+CC_FLAGS = -Wall -std="c99"
 SDLFLAGS = -lSDL2 `sdl2-config --cflags --libs`
+.PHONY = clean
 # questa cosa si può migliorare di peso con tipo %.o:%.c
 OBJS = chip8.o gpu.o gui.o
 
@@ -15,3 +16,5 @@ build: $(OBJS)
 
 run: build
 	bin/chip8
+clean: 
+	rm *.o bin/chip8

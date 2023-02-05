@@ -16,3 +16,4 @@ Oppure boh, ci penserò con calma più avanti
 - [ ] Sarebbe interessante andare a vedere come si fanno i test in c visto che effettivamente non mi è mai capitato di farne ehehe
 - [ ] Un sistema di logging anche non sarebbe terribile, potrebbe anche essere solo selezionato a compile time con degli #ifdef 
 - [ ] Sarebbe poi carino tipo un coso per analizzare la cpu e magari fare anche step by step
+- [ ] Per adesso lo stepper non permette di fornire input

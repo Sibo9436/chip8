@@ -21,6 +21,7 @@ int main(){
 	fseek (fileptr,0, SEEK_END);
 	filelen = ftell(fileptr);
 	rewind(fileptr);
+	printf("filesize is: %ld\n", filelen);
 
 	buffer = (char*)malloc(filelen*sizeof(char));
 	fread(buffer,filelen,1,fileptr);

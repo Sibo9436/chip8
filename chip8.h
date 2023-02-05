@@ -13,7 +13,7 @@
 
 typedef struct chip8{
 	GPU gpu;
-	char mem[CHIP_MEM_SIZE];
+	uint8_t mem[CHIP_MEM_SIZE];
 	uint16_t  pc;//program counter
 	uint16_t i; //Index register
 	//something needs to be done with the delay and sound timers :)
@@ -28,7 +28,7 @@ typedef struct chip8{
 	
 	
 }CHIP8;
-CHIP8 chip;
+extern CHIP8 chip;
 
 //TODO: A questo punto potrebbe essere semplicemente più intelligente restituire un oggetto err(come in go)
 //IDEA: tecnicamente si potrebbe anche pensare di avere solo un "singleton" CHIP8

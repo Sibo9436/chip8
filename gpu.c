@@ -42,6 +42,7 @@ void gpu_loop(GPU* gpu){
 
 int gpu_close(GPU* gpu){
 	SDL_DestroyWindow(gpu->window);
+//TODO: Ricordarsi di spostare fuori
 	SDL_Quit();
 	return 0;
 
@@ -87,7 +88,7 @@ void gpu_draw(GPU* gpu){
 
 void gpu_clear(GPU* gpu){
 	//should I do this the hacky, efficient way or the fancy, less efficient one?
-	memset(gpu->mem,0,GPU_SIZE); 
+	memset(gpu->mem,0,sizeof(char)*GPU_SIZE); 
 	SDL_SetRenderDrawColor(gpu->renderer, 0x00,0x00,0x00,0xFF);
 	SDL_RenderClear(gpu->renderer);
 	SDL_RenderPresent(gpu->renderer);

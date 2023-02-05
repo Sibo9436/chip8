@@ -3,6 +3,7 @@
 #include "chip8.h"
 #include "gui.h"
 
+
 #define MASK_NNN(x) (x & 0x0FFF)
 #define MASK_NN(x) (x & 0x00FF)
 #define MASK_N(x) (x & 0x000F)
@@ -17,8 +18,9 @@
 #define CHIP8_DEBUG 0
 #endif
 #define debug_print(fmt, ...) \
-	            do { if (CHIP8_DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+	do { if (CHIP8_DEBUG) fprintf(stderr, fmt, __VA_ARGS__); } while (0)
 
+CHIP8 chip;
 char font_array[]  = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -90,24 +92,24 @@ size_t chip8_get_key_index(SDL_Scancode code){
 			return 16;
 	}
 	//FIXME: remember to fix
- }
+}
 int chip8_init(){
 	srand(time(NULL));
-	memset(chip.mem,0,CHIP_MEM_SIZE);
-	memset(chip.stack,0,16);
+	memset(chip.mem,0,sizeof(char)*CHIP_MEM_SIZE);
+	memset(chip.stack,0,sizeof(char)*6);
 	chip.stackptr = 0;
-	memset(chip.v,0,16);
+	memset(chip.v,0,sizeof(char)*16);
 	chip.pc = 0x200;
 
 	printf("copying font memory\n");
-	memcpy(&(chip.mem[0x050]), font_array, 80);
+	memcpy(&(chip.mem[0x050]), font_array, sizeof(char)*80);
 
-	
+
 	printf("clearing gpu memory\n");
-	memset(chip.gpu.mem, 0, GPU_SIZE);
-//	for (unsigned int i = 0; i<160; i++){
-//		printf("mem[%d] -> %u\n", i, chip.mem[i]);
-//	}
+	memset(chip.gpu.mem, 0,sizeof(char)* GPU_SIZE);
+	//	for (unsigned int i = 0; i<160; i++){
+	//		printf("mem[%d] -> %u\n", i, chip.mem[i]);
+	//	}
 	if (SDL_Init (SDL_INIT_VIDEO) < 0 ){
 		printf("SDL could not be initialized! SDL:Error: %s\n", SDL_GetError() );
 		//Extremely dangerous living
@@ -117,6 +119,7 @@ int chip8_init(){
 	if (ptr == NULL){
 		return CHIP_FALSE;
 	}
+	gui_init();
 	return CHIP_TRUE;
 }
 
@@ -132,256 +135,264 @@ uint16_t chip8_fetch(){
 //Ispirandomi a sdl chip_intruction sarà una union di tutte le istruzioni possibili
 //in c++ o rust qui verrà il momento della porgrammazione a oggetti/composizione di interfacce :)
 //Oppure potrei semplicemente fare girare qui le istruzioni hmmm
-void chip8_decode(uint16_t op){
-	printf("reg[");
+void chip8_dump_state(){
+	//dumps cpu state to stdout (no memory)
+	printf("PC: %d\n", chip.pc);
+	printf("I:[\%d]",chip.i);
+	printf(" v[");
 	for (size_t i = 0 ; i < 16; i++){
 		printf("%u ",chip.v[i]);
 	}
 	printf("]\n");
+}
+void chip8_decode(uint16_t op){
+	printf("Op: %x\n", op);
 	switch (op & 0xF000){
 		case 0x0000:
-		{
-			if (op == 0x00E0){
-				gpu_clear(&chip.gpu);
-			}else if(op == 0x00EE){
-				chip.pc = chip.stack[--chip.stackptr];
-			}	
-			break;
-		}
-		case 0x1000:
-		{
-			chip.pc =  MASK_NNN(op);
-			break;
-		}
-		case 0x2000: //subroutine
-		{
-			//TODO:Dovrei veramente fare un check per gli stackoverflow!
-			chip.stack[chip.stackptr++] = chip.pc;
-			chip.pc = MASK_NNN(op);
-			break;
-		}
-		case 0x3000:
-		{
-			//Skip if vx == NN
-			chip.pc += (chip.v[MASK_X(op)] == MASK_NN(op) )*2;
-			break;
-
-		}
-		case 0x4000:
-		{
-			//Skip if vx != NN
-			chip.pc += (chip.v[MASK_X(op)] != MASK_NN(op) )*2;
-			break;
-		}
-		case 0x5000:
-		{
-			//Skip if vx == vy
-			chip.pc += (chip.v[MASK_X(op)] == chip.v[MASK_Y(op)])*2;
-			break;
-		}
-		case 0x6000: //setta registro x a valore NN
-		{
-			printf("op:%x, setting v[%u]=%u\n",op, (uint8_t)MASK_X(op),MASK_NN(op));
-			chip.v[MASK_X(op)] =(uint8_t)MASK_NN(op);
-			break;
-		}
-		case 0x7000: //add !!Does not set the carry flag!!
-		{
-			printf("op:%x, adding v[%u]+v[%u]\n",op, (uint8_t)MASK_X(op),MASK_NN(op));
-			chip.v[MASK_X(op)] += (uint8_t)MASK_NN(op);
-			break;
-		}
-		case 0x8000:
-		{
-			switch (MASK_N(op)){
-				case 0x0:
-					chip.v[MASK_X(op)] = chip.v[MASK_Y(op)];
-					break;
-				case 0x1:
-					chip.v[MASK_X(op)] |= chip.v[MASK_Y(op)];
-					break;
-				case 0x2:
-					chip.v[MASK_X(op)] &= chip.v[MASK_Y(op)];
-					break;
-				case 0x3:
-					chip.v[MASK_X(op)] ^= chip.v[MASK_Y(op)];
-					break;
-				case 0x4: 
-				{
-					if (chip.v[MASK_X(op)] > 255 - chip.v[MASK_Y(op)]){
-						chip.v[0xF] = 1;
-					}else{
-						chip.v[0xF] = 0;
-					}
-					chip.v[MASK_X(op)] += chip.v[MASK_Y(op)];
-					break;
-				}
-				case 0x5:
-				{
-					if ( chip.v[MASK_X(op)] > chip.v[MASK_Y(op)] ){
-						chip.v[0xF] = 1;
-					}else {
-						chip.v[0xF] = 0;
-					}
-					chip.v[MASK_X(op)] -= chip.v[MASK_Y(op)];
-					break;
-				}
-				case 0x6:
-				{
-					//Occhio che in base al tipo di interprete questa operazione cambia -.-
-					//in versioni più vecchie copiava vy in vx prima di fare
-					//noi inizieremo con questa versione, poi vedremo
-					//scherzone, proviamo a passare alla nuova
-
-					uint8_t x= MASK_X(op);
-					//chip.v[x] = chip.v[MASK_Y(op)];
-					chip.v[0xF] =( (chip.v[x] & 0x8) != 0); 
-					chip.v[x] >>= 1;
-					break;
-				}
-				case 0x7:
-				{
-					if ( chip.v[MASK_Y(op)] > chip.v[MASK_X(op)] ){
-						chip.v[0xF] = 1;
-					}else {
-						chip.v[0xF] = 0;
-					}
-					chip.v[MASK_X(op)] =chip.v[MASK_Y(op)]- chip.v[MASK_X(op)];
-					break;
-				}
-				case 0xE:
-				{
-					//Occhio che in base al tipo di interprete questa operazione cambia -.-
-					//in versioni più vecchie copiava vy in vx prima di fare
-					//noi inizieremo con questa versione, poi vedremo
-					uint8_t x= MASK_X(op);
-					//chip.v[x] = chip.v[MASK_Y(op)];
-					chip.v[0xF] = ((chip.v[x] & 0x1) != 0); 
-					chip.v[x] <<= 1;
-					break;
-				}
-				default:
-				printf("Useless op:%x\n",op);
+			{
+				if (op == 0x00E0){
+					gpu_clear(&chip.gpu);
+				}else if(op == 0x00EE){
+					chip.pc = chip.stack[--chip.stackptr];
+				}	
 				break;
 			}
-			break;
-		}
-		
+		case 0x1000:
+			{
+				chip.pc =  MASK_NNN(op);
+				break;
+			}
+		case 0x2000: //subroutine
+			{
+				//TODO:Dovrei veramente fare un check per gli stackoverflow!
+				chip.stack[chip.stackptr++] = chip.pc;
+				chip.pc = MASK_NNN(op);
+				break;
+			}
+		case 0x3000:
+			{
+				//Skip if vx == NN
+				chip.pc += (chip.v[MASK_X(op)] == MASK_NN(op) )*2;
+				break;
+
+			}
+		case 0x4000:
+			{
+				//Skip if vx != NN
+				chip.pc += (chip.v[MASK_X(op)] != MASK_NN(op) )*2;
+				break;
+			}
+		case 0x5000:
+			{
+				//Skip if vx == vy
+				chip.pc += (chip.v[MASK_X(op)] == chip.v[MASK_Y(op)])*2;
+				break;
+			}
+		case 0x6000: //setta registro x a valore NN
+			{
+				printf("op:%x, setting v[%u]=%u\n",op, (uint8_t)MASK_X(op),MASK_NN(op));
+				chip.v[MASK_X(op)] =(uint8_t)MASK_NN(op);
+				break;
+			}
+		case 0x7000: //add !!Does not set the carry flag!!
+			{
+				printf("op:%x, adding v[%u]+v[%u]\n",op, (uint8_t)MASK_X(op),MASK_NN(op));
+				chip.v[MASK_X(op)] += (uint8_t)MASK_NN(op);
+				break;
+			}
+		case 0x8000:
+			{
+				switch (MASK_N(op)){
+					case 0x0:
+						chip.v[MASK_X(op)] = chip.v[MASK_Y(op)];
+						break;
+					case 0x1:
+						chip.v[MASK_X(op)] |= chip.v[MASK_Y(op)];
+						break;
+					case 0x2:
+						chip.v[MASK_X(op)] &= chip.v[MASK_Y(op)];
+						break;
+					case 0x3:
+						chip.v[MASK_X(op)] ^= chip.v[MASK_Y(op)];
+						break;
+					case 0x4: 
+						{
+							if (chip.v[MASK_X(op)] > 255 - chip.v[MASK_Y(op)]){
+								chip.v[0xF] = 1;
+							}else{
+								chip.v[0xF] = 0;
+							}
+							chip.v[MASK_X(op)] += chip.v[MASK_Y(op)];
+							break;
+						}
+					case 0x5:
+						{
+							if ( chip.v[MASK_X(op)] > chip.v[MASK_Y(op)] ){
+								chip.v[0xF] = 1;
+							}else {
+								chip.v[0xF] = 0;
+							}
+							chip.v[MASK_X(op)] -= chip.v[MASK_Y(op)];
+							break;
+						}
+					case 0x6:
+						{
+							//Occhio che in base al tipo di interprete questa operazione cambia -.-
+							//in versioni più vecchie copiava vy in vx prima di fare
+							//noi inizieremo con questa versione, poi vedremo
+							//scherzone, proviamo a passare alla nuova
+
+							uint8_t x= MASK_X(op);
+							//chip.v[x] = chip.v[MASK_Y(op)];
+							chip.v[0xF] =( (chip.v[x] & 0x8) != 0); 
+							chip.v[x] >>= 1;
+							break;
+						}
+					case 0x7:
+						{
+							if ( chip.v[MASK_Y(op)] > chip.v[MASK_X(op)] ){
+								chip.v[0xF] = 1;
+							}else {
+								chip.v[0xF] = 0;
+							}
+							chip.v[MASK_X(op)] =chip.v[MASK_Y(op)]- chip.v[MASK_X(op)];
+							break;
+						}
+					case 0xE:
+						{
+							//Occhio che in base al tipo di interprete questa operazione cambia -.-
+							//in versioni più vecchie copiava vy in vx prima di fare
+							//noi inizieremo con questa versione, poi vedremo
+							uint8_t x= MASK_X(op);
+							//chip.v[x] = chip.v[MASK_Y(op)];
+							chip.v[0xF] = ((chip.v[x] & 0x1) != 0); 
+							chip.v[x] <<= 1;
+							break;
+						}
+					default:
+						printf("Useless op:%x\n",op);
+						break;
+				}
+				break;
+			}
+
 		case 0x9000:
-		{
-			//Skip if vx != vy
-			chip.pc += (chip.v[MASK_X(op)] != chip.v[MASK_Y(op)])*2;
-			break;
-		}
+			{
+				//Skip if vx != vy
+				chip.pc += (chip.v[MASK_X(op)] != chip.v[MASK_Y(op)])*2;
+				break;
+			}
 		case 0xA000:
-		{
-			chip.i = MASK_NNN(op);
-			break;
-		}
+			{
+				printf("Setting i reg to %d\n", MASK_NNN(op));
+				chip.i = MASK_NNN(op);
+				break;
+			}
 		case 0xB000:
-		{
-			//ambigua, nell'originale saltava a nnn+v0, dopo invece funzionava come bxnn ovvero xnn+vx,strano
-			//implementiamo la versione nuova for now
-			chip.pc = chip.v[MASK_X(op)] + MASK_NNN(op);
-			break;
-		}
+			{
+				//ambigua, nell'originale saltava a nnn+v0, dopo invece funzionava come bxnn ovvero xnn+vx,strano
+				//implementiamo la versione nuova for now
+				chip.pc = chip.v[MASK_X(op)] + MASK_NNN(op);
+				break;
+			}
 		case 0xC000:
-		{
-			int randint = rand()%0xFF;
-			uint16_t rint = (uint16_t)randint;
-			chip.v[MASK_X(op)] = rint & MASK_NN(op);
-			break;
-		}
+			{
+				int randint = rand()%0xFF;
+				uint16_t rint = (uint16_t)randint;
+				chip.v[MASK_X(op)] = rint & MASK_NN(op);
+				break;
+			}
 		case 0xD000:
-		{
-			//Logicamente ha più senso non creare ogni volta lo sprite :)
-			printf("draw op %x x:%u, y:%u\n",op,MASK_X(op),MASK_Y(op));
-			//for (unsigned int i = 0; i< 16 ; i++)printf("v[%u]=%u\n",i,chip.v[i]);
-			GPU_sprite sprite = {
-				.x = (unsigned int)chip.v[MASK_X(op)],
-				.y = (unsigned int)chip.v[MASK_Y(op)],
-				.height =(unsigned int) MASK_N(op),
-				.ptr = &chip.mem[chip.i]
-			};
-			chip.v[0xF] = 0;
-			gpu_draw_sprite(&chip.gpu, &sprite);
-			break;
-		}
+			{
+				//Logicamente ha più senso non creare ogni volta lo sprite :)
+				printf("draw op %x x:%u, y:%u\n",op,MASK_X(op),MASK_Y(op));
+				//for (unsigned int i = 0; i< 16 ; i++)printf("v[%u]=%u\n",i,chip.v[i]);
+				GPU_sprite sprite = {
+					.x = (unsigned int)chip.v[MASK_X(op)],
+					.y = (unsigned int)chip.v[MASK_Y(op)],
+					.height =(unsigned int) MASK_N(op),
+					.ptr = &chip.mem[chip.i]
+				};
+				chip.v[0xF] = 0;
+				gpu_draw_sprite(&chip.gpu, &sprite);
+				break;
+			}
 		case 0xE000:
-		{
-			if (MASK_NN(op) == 0x9E){
-				chip.pc += 2*( keyboard_state[chip.v[MASK_X(op)]] == CHIP_KEY_DOWN);
-			}else if(MASK_NN(op) == 0xA1){
-				chip.pc += 2*( keyboard_state[chip.v[MASK_X(op)]] != CHIP_KEY_DOWN);
-			}
+			{
+				if (MASK_NN(op) == 0x9E){
+					chip.pc += 2*( keyboard_state[chip.v[MASK_X(op)]] == CHIP_KEY_DOWN);
+				}else if(MASK_NN(op) == 0xA1){
+					chip.pc += 2*( keyboard_state[chip.v[MASK_X(op)]] != CHIP_KEY_DOWN);
+				}
 
-			break;
-		}
+				break;
+			}
 		case 0xF000:
-		{
-			//TODO:Implementare quelle relative al timer :)
-			switch (MASK_NN(op)) {
-				case 0x07:
-				{
-					chip.v[MASK_X(op)] = chip.delay_timer;
-					break;
-				}
-				case 0x15:
-					chip.delay_timer = chip.v[MASK_X(op)];
-					break;
-				case 0x18:
-					chip.sound_timer = chip.v[MASK_X(op)];
-				case 0x1E:
-					//L'originale non teneva conto dell'overflow, ma noi si
-					if (chip.i > 0xFF - chip.v[MASK_X(op)]) chip.v[0xF] = 1;
-					chip.i += chip.v[MASK_X(op)];
-					break;
-				case 0x0A:
-					if (CHIP8_key_state == CHIP_KEY_RELEASED){
-						chip.v[MASK_X(op)] = CHIP8_key;
-					}else {
-						chip.pc-=2;
-					}
-					break;
-				case 0x29: //Font character
-					chip.i = (5*(uint16_t)chip.v[MASK_X(op)])+0x0050;
-					break;
-				case 0x33:
-				{
-					uint8_t number = chip.v[MASK_X(op)];
-					chip.mem[chip.i+2] = number % 10;
-					number /=10;
-					chip.mem[chip.i+1] = number % 10;
-					number /=10;
-					chip.mem[chip.i] = number % 10;
-					printf("Number %u is %u%u%u\n", chip.v[MASK_X(op)],chip.mem[chip.i],
-							chip.mem[chip.i+1],
-							chip.mem[chip.i+2]);
+			{
+				//TODO:Implementare quelle relative al timer :)
+				switch (MASK_NN(op)) {
+					case 0x07:
+						{
+							chip.v[MASK_X(op)] = chip.delay_timer;
+							break;
+						}
+					case 0x15:
+						chip.delay_timer = chip.v[MASK_X(op)];
+						break;
+					case 0x18:
+						chip.sound_timer = chip.v[MASK_X(op)];
+					case 0x1E:
+						//L'originale non teneva conto dell'overflow, ma noi si
+						if (chip.i > 0xFF - chip.v[MASK_X(op)]) chip.v[0xF] = 1;
+						chip.i += chip.v[MASK_X(op)];
+						break;
+					case 0x0A:
+						if (CHIP8_key_state == CHIP_KEY_RELEASED){
+							chip.v[MASK_X(op)] = CHIP8_key;
+						}else {
+							chip.pc-=2;
+						}
+						break;
+					case 0x29: //Font character
+						chip.i = (5*(uint16_t)chip.v[MASK_X(op)])+0x0050;
+						break;
+					case 0x33:
+						{
+							uint8_t number = chip.v[MASK_X(op)];
+							chip.mem[chip.i+2] = number % 10;
+							number /=10;
+							chip.mem[chip.i+1] = number % 10;
+							number /=10;
+							chip.mem[chip.i] = number % 10;
+							printf("Number %u is %u%u%u\n", chip.v[MASK_X(op)],chip.mem[chip.i],
+									chip.mem[chip.i+1],
+									chip.mem[chip.i+2]);
 
 
-					break;
-				}
-				//per entrambi si usa il comportamento "moderno" in cui non incremento i
-				case 0x55:
-				{
-					//si ringrazia la libreria standard
-					memcpy(&chip.mem[chip.i],chip.v, MASK_X(op)+1);
-					break;
-				}
-				case 0x65:
-				{
-					memcpy(chip.v,&chip.mem[chip.i], MASK_X(op)+1);
-					break;
-				}
+							break;
+						}
+						//per entrambi si usa il comportamento "moderno" in cui non incremento i
+					case 0x55:
+						{
+							//si ringrazia la libreria standard
+							memcpy(&chip.mem[chip.i],chip.v,sizeof(uint8_t)* (MASK_X(op)+1));
+							break;
+						}
+					case 0x65:
+						{
+							memcpy(chip.v,&chip.mem[chip.i], sizeof(uint8_t)*(MASK_X(op)+1));
+							break;
+						}
 
+				}
+				break;
 			}
-			break;
-		}
 
 		default:
 			debug_print("UNRECOGNIZED OPCODE:%u\n", op);
 			break;
 	}
+	chip8_dump_state();
 
 }
 
@@ -390,6 +401,7 @@ void chip8_loop(){
 	bool quit = false;
 	uint32_t start_ticks = SDL_GetTicks();
 	while( quit == false ){ 
+		bool stepped = false;
 		//Non so quanto possa convenirmi fare una roba del genere
 		if (CHIP8_key_state == CHIP_KEY_RELEASED) CHIP8_key_state = CHIP_KEY_UP;
 		for (size_t i = 0; i < 16; i++){
@@ -405,28 +417,31 @@ void chip8_loop(){
 					break;
 				case SDL_KEYUP:
 					{
-					//printf("Released key: %s\n", SDL_GetKeyName(e.key.keysym.sym));
-					//devo estrarre sta roba perché sta diventando mezza illeggibile
-					uint16_t idx = chip8_get_key_index(e.key.keysym.scancode);
-					if (idx < 16){
+						if (e.key.keysym.scancode == SDL_SCANCODE_P){
+							stepped = true;
+						}
+						//printf("Released key: %s\n", SDL_GetKeyName(e.key.keysym.sym));
+						//devo estrarre sta roba perché sta diventando mezza illeggibile
+						uint16_t idx = chip8_get_key_index(e.key.keysym.scancode);
+						if (idx < 16){
 
-					keyboard_state[idx] = CHIP_KEY_RELEASED;
-					CHIP8_key = (uint8_t)idx;
-					CHIP8_key_state = CHIP_KEY_RELEASED;
-					}
-					break;
+							keyboard_state[idx] = CHIP_KEY_RELEASED;
+							CHIP8_key = (uint8_t)idx;
+							CHIP8_key_state = CHIP_KEY_RELEASED;
+						}
+						break;
 					}
 				case SDL_KEYDOWN:
 					{
-					//printf("Pressed key: %s\n", SDL_GetKeyName(e.key.keysym.sym));
-					uint16_t idx = chip8_get_key_index(e.key.keysym.scancode);
-					if (idx < 16){
+						//printf("Pressed key: %s\n", SDL_GetKeyName(e.key.keysym.sym));
+						uint16_t idx = chip8_get_key_index(e.key.keysym.scancode);
+						if (idx < 16){
 
-					keyboard_state[idx] = CHIP_KEY_DOWN;
-					CHIP8_key = (uint8_t)idx;
-					CHIP8_key_state = CHIP_KEY_DOWN;
-					}
-					break;
+							keyboard_state[idx] = CHIP_KEY_DOWN;
+							CHIP8_key = (uint8_t)idx;
+							CHIP8_key_state = CHIP_KEY_DOWN;
+						}
+						break;
 					}
 			}
 		}
@@ -439,15 +454,20 @@ void chip8_loop(){
 			if (chip.sound_timer >0)chip.sound_timer-=1;
 			//printf("Decreasing timers");
 		}
-		uint16_t op = chip8_fetch();
-		//Hack
-		chip8_decode(op);
-		SDL_Delay(1);
+		if (stepped)
+		{
+			uint16_t op = chip8_fetch();
+			//Hack
+			chip8_decode(op);
+			gui_draw_memory(chip.mem);
+			SDL_Delay(1);
+		}
 	}
 }
 
 void chip8_close(){
 	gpu_close(&(chip.gpu));
+	gui_close();
 }
 
 int chip8_load(char* buffer, long filelen){
@@ -455,7 +475,7 @@ int chip8_load(char* buffer, long filelen){
 		fprintf(stderr,"FILE TOO BIG!");
 		return 0;
 	}
-	memcpy(&chip.mem[0x0200],buffer,filelen);
+	memcpy(&chip.mem[0x0200],buffer,sizeof(char)*filelen);
 	return 1;
 }
 
