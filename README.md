@@ -18,6 +18,10 @@ Oppure boh, ci penserò con calma più avanti
 - [ ] (INIZIATO)Sarebbe poi carino tipo un coso per analizzare la cpu e magari fare anche step by step
 - [ ] Per adesso lo stepper non permette di fornire input
 
+## Status 
+Allo stato attuale sembra esserci qualche problema ad esempio quando si gioca a breakout, manca ancora il sonoro e probabilmente se ci facessi girare valgrind mi verrebbe un infarto
+Comunque il concetto principale funziona e ora sono più interessato al passare a emulatori più intriganti
+
 ## Performance
 La performance ora sembra abbastanza a posto, resta il problema che giocando a breakout ogni tanto
 La memoria della gpu viene fregata dalla sovrapposizione della pallina e della barra
