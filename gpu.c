@@ -48,8 +48,9 @@ int gpu_close(GPU* gpu){
 
 }
 
-void gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite) {
+bool gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite) {
 	uint8_t* ptr = sprite->ptr;
+	bool ret = false;
 	//Weird but ok
 	unsigned int startx = sprite->x % GPU_WIDTH;
 	unsigned int starty = sprite->y %GPU_HEIGHT;
@@ -57,6 +58,7 @@ void gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite) {
 		for (int i = 7; i>=0 ; i--){
 			if ((starty + count) < GPU_HEIGHT &&(startx + 7-i )< GPU_WIDTH &&((*ptr) & (1<<i))!=0){
 				unsigned int coord = (startx +7-i) + (starty + count)*GPU_WIDTH;
+				if (gpu->mem[coord] == 1)ret = true;
 				gpu->mem[coord] = !gpu->mem[coord];
 			}
 		}
@@ -65,6 +67,7 @@ void gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite) {
 		ptr++;
 	}
 	gpu_draw(gpu);
+	return ret;
 }
 void gpu_draw(GPU* gpu){
 	//tecnicamente posso evitare di ricolorare sempre, ma non so se ne valga la pena

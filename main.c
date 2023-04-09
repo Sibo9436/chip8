@@ -17,7 +17,9 @@ int main(){
 	long filelen;
 	//fileptr = fopen("ibm_logo.ch8","rb");
 	//fileptr = fopen("test_opcode.ch8","rb");
-	fileptr = fopen("test/test-suite.ch8","rb");
+	//fileptr = fopen("test/test-suite.ch8","rb");
+	fileptr = fopen("test/breakout.ch8","rb");
+	//fileptr = fopen("test/mondrian.ch8","rb");
 	fseek (fileptr,0, SEEK_END);
 	filelen = ftell(fileptr);
 	rewind(fileptr);

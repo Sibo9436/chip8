@@ -12,7 +12,7 @@ chip8.o : chip8.c
 gui.o : gui.c
 	$(CC) $(CC_FLAGS)  gui.c -c -o gui.o $(SDLFLAGS)
 build: $(OBJS)
-	$(CC) $(CC_FLAGS)  main.c $(OBJS) -o bin/chip8 $(SDLFLAGS)
+	$(CC) $(CC_FLAGS)  main.c $(OBJS) -lm -o bin/chip8 $(SDLFLAGS)
 
 run: build
 	bin/chip8

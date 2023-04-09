@@ -44,7 +44,6 @@ void gui_draw_memory(uint8_t* memory){
 	//Se ho capito bene potrei anche usare una surface qui ma
 	// la texture è più sdl2
 	SDL_LockTexture(gui_texture,NULL, (void**)&pixels, &pitch);
-	printf("Texture pitch:%d\n", pitch);
 	SDL_Rect dest = {.x=0, .y=0, .w=GUI_SCREEN_WIDTH,.h=GUI_SCREEN_HEIGHT};
 	//TODO: Occhio che così non è del tutto corretto eh
 	SDL_SetRenderDrawColor(gui_renderer, 0xFF,0xFF,0xFF,0xFF);

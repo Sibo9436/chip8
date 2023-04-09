@@ -1,6 +1,7 @@
 #ifndef GPU_H
 #define GPU_H
 #include <SDL2/SDL.h>
+#include<stdbool.h>
 
 #define CHIP_SCREEN_WIDTH  640
 #define CHIP_SCREEN_HEIGHT  320
@@ -49,7 +50,7 @@ void gpu_draw(GPU* gpu);
 //io per ora la gpu uso un byte per punto (più per semplicità che per altro)
 //immagino che a livello di efficienza usare un formato più compatto sarebbe più intelligente
 //ma sono solo 2kb per ora posso comodamnente sbattermene
-void gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite);
+bool gpu_draw_sprite(GPU* gpu, GPU_sprite* sprite);
 void gpu_clear(GPU* gpu);
 
 #endif // GPU_H
